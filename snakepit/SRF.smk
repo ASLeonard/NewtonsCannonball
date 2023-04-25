@@ -28,10 +28,10 @@ rule KMC_count:
         threshold = 30*10
     threads: 8
     resources:
-        mem_mb = 3000
+        mem_mb = 8000
     shell:
         '''
-        kmc -k 151 -m 20 -t {threads} -ci {params.threshold} -cs 100000 -fa {input.reads} {params.prefix} $TMPDIR
+        kmc -k151 -t{threads} -ci{params.threshold} -cs100000 -m20 -fa {input.reads} {params.prefix} $TMPDIR
         '''
 
 rule KMC_dump:
@@ -71,7 +71,7 @@ rule minimap2_align:
         walltime = '24h'
     shell:
         '''
-        minimap2 -c -t {threads} -N1000000 -f1000 -r100,100 <(./srfutils.js enlong {input.satellites}) {input.reads} > {output}
+        minimap2 -c -t {threads} -N1000000 -f1000 -r100,100 <(srfutils.js enlong {input.satellites}) {input.reads} > {output}
         '''
  
 rule srfutils:
