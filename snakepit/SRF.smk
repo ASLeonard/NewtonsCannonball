@@ -83,7 +83,7 @@ rule srfutils:
     localrule: True
     shell:
         '''
-        srfutils.js paf2bed {input} > {output.bed}   # filter and extract non-overlapping regions
-        srfutils.js bed2abun {output.bed} > {output.abun}
+        srfutils.js paf2bed -l 1000 {input} > {output.bed}   # filter and extract non-overlapping regions
+        srfutils.js bed2abun -g 2700000000 {output.bed} > {output.abun}
         '''
 
