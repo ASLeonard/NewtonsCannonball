@@ -6,9 +6,9 @@ rule all:
 
 rule samtools_fastq:
     input:
-        lambda wildcards: config['samples'][wildcards.sample]
+        '/nfs/nas12.ethz.ch/fs1201/green_groups_tg_public/data/long_reads/{sample}/alignment/{sample}.mm2.cram'
     output:
-        '/cluster/scratch/alleonard/{sample}.fa.gz'
+        'reads/{sample}.fa.gz'
     threads: 4
     resources:
         mem_mb = 2500
@@ -18,14 +18,26 @@ rule samtools_fastq:
         samtools fasta -@ {threads} --reference {config[reference]} - | pigz -p {threads} -c > {output}
         '''
 
+rule estimate_coverage:
+    input:
+        rules.samtools_fastq.output
+    output:
+        'kmers/{sample}.coverage'
+    #localrules: True
+    shell:
+        '''
+        zgrep -v ">" {input} | awk '{{ l+=length($1) }} END {{ print l/2759153975 }}' > {output}
+        '''
+
 rule KMC_count:
     input:
-        reads = rules.samtools_fastq.output
+        reads = rules.samtools_fastq.output,
+        coverage = rules.estimate_coverage.output
     output:
         multiext('kmers/{sample}.kmc','.kmc_pre','.kmc_suf')
     params:
         prefix = lambda wildcards, output: PurePath(output[0]).with_suffix(''),
-        threshold = 30*10
+        threshold = lambda wildcards, input: int(float(open(input.coverage[0]).read())*10)
     threads: 8
     resources:
         mem_mb = 8000
