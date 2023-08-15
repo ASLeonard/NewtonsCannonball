@@ -43,7 +43,7 @@ rule KMC_count:
         mem_mb = 8000
     shell:
         '''
-        kmc -k151 -t{threads} -ci{params.threshold} -cs100000 -m20 -fa {input.reads} {params.prefix} $TMPDIR
+        kmc -k151 -t{threads} -ci{params.threshold} -cs1000000 -m20 -fa {input.reads} {params.prefix} $TMPDIR
         '''
 
 rule KMC_dump:
@@ -69,6 +69,44 @@ rule SRF:
     shell:
         '''
         srf -p {wildcards.sample} {input} > {output}
+        '''
+
+rule TRF:
+    input:
+        rules.SRF.output
+    output:
+        TRF = 'satellites/{sample}.TRF',
+        monomers = 'satellites/{sample}.monomers'
+    params:
+        min_span = 0.75
+    shell:
+        '''
+        TRF {input} 2 5 7 80 10 50 2000 -h -ngs | tee {output.TRF} |\
+        awk -v m=0 -v T={params.min_span} '{{ if ($1~/@/) {{C=substr($1,2);D=$2;split($1,Q,"-");S=Q[2]; if (m>0) {{print X;m=0 }} }} else {{ if ($8>m&&($2-$1)>(S*T)) {{m=$8; X=">"C" "D",start="$1",end="$2",score="$8"\\n"$14 }} }} }} END {{print X}}' > {output.monomers}
+        #manually print last case since no new line to trigger it
+
+        #awk '{{ if ($1~/@/) {{ C=substr($1,2);n=1;D=$2 }} else {{ if ($1~/[[:digit:]+]/) {{ print ">"C"_"n" "D",start="$1",end="$2",score="$8"\\n"$14; n+=1 }} }}    }}' > {output.monomers}
+        '''
+
+rule curate_satellite_repeats:
+    input:
+       SRF = rules.SRF.output,
+       TRF = rules.TRF.output
+    output:
+        'satellites/{sample}.txt'
+    shell:
+        '''
+        samtools faidx -r <(grep -vFf <(awk '/>/ {{ print substr($1,2) }}' {input.TRF[1]}) <(awk '/>/ {{ print substr($1,2) }}' {input.SRF})) {input.SRF} | cat {input.TRF[1]} - |\
+        python -c '
+import sys;
+def minimal_string(string):
+    return sorted([string[i:]+string[:i] for i in range(len(string))])[0];
+for line in sys.stdin:
+    if line[0] == ">":
+        print(line.rstrip());
+    else:
+        print(minimal_string(line.rstrip()))
+        ' > {output}
         '''
 
 rule minimap2_align:
