@@ -2,7 +2,7 @@ from pathlib import PurePath
 
 rule all:
     input:
-        expand('satellites/{sample}.abundance.txt',sample=config['samples'])
+        expand('satellites/{sample}.txt',sample=config['samples'])
 
 rule samtools_fastq:
     input:
@@ -43,7 +43,7 @@ rule KMC_count:
         mem_mb = 8000
     shell:
         '''
-        kmc -k151 -t{threads} -ci{params.threshold} -cs1000000 -m20 -fa {input.reads} {params.prefix} $TMPDIR
+        kmc -k151 -t{threads} -ci{params.threshold} -cs1000000000 -m20 -fa {input.reads} {params.prefix} $TMPDIR
         '''
 
 rule KMC_dump:
