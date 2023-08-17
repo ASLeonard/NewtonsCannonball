@@ -2,7 +2,7 @@ from pathlib import PurePath
 
 rule all:
     input:
-        expand('satellites/{sample}.txt',sample=config['samples'])
+        expand('satellites/{sample}.realign.paf',sample=config['samples'])
 
 rule samtools_fastq:
     input:
@@ -40,7 +40,7 @@ rule KMC_count:
         threshold = lambda wildcards, input: int(float(open(input.coverage[0]).read())*10)
     threads: 8
     resources:
-        mem_mb = 8000
+        mem_mb = 9000
     shell:
         '''
         kmc -k151 -t{threads} -ci{params.threshold} -cs1000000000 -m20 -fa {input.reads} {params.prefix} $TMPDIR
@@ -118,7 +118,7 @@ rule minimap2_align:
     threads: 16
     resources:
         mem_mb = 3000,
-        walltime = '24h'
+        walltime = '4h'
     shell:
         '''
         minimap2 -c -t {threads} -N1000000 -f1000 -r100,100 <(srfutils.js enlong {input.satellites}) {input.reads} > {output}
@@ -126,14 +126,17 @@ rule minimap2_align:
  
 rule srfutils:
     input:
-        rules.minimap2_align.output
+        paf = rules.minimap2_align.output,
+        coverage = rules.estimate_coverage.output
     output:
         bed = 'satellites/{sample}.abundance.bed',
         abun = 'satellites/{sample}.abundance.txt'
+    params:
+        size = lambda wildcards, input: int(float(open(input.coverage[0]).read())*2759153975)
     localrule: True
     shell:
         '''
-        srfutils.js paf2bed -l 1000 {input} > {output.bed}   # filter and extract non-overlapping regions
-        srfutils.js bed2abun -g 2700000000 {output.bed} > {output.abun}
+        srfutils.js paf2bed -l 1000 {input.paf} > {output.bed}   # filter and extract non-overlapping regions
+        srfutils.js bed2abun -g {params.size} {output.bed} > {output.abun}
         '''
 
