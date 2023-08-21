@@ -1,9 +1,5 @@
 from pathlib import PurePath
 
-rule all:
-    input:
-        expand('satellites/{sample}.realign.paf',sample=config['samples'])
-
 rule samtools_fastq:
     input:
         '/nfs/nas12.ethz.ch/fs1201/green_groups_tg_public/data/long_reads/{sample}/alignment/{sample}.mm2.cram'
