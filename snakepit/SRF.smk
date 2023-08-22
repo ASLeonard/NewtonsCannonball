@@ -19,10 +19,11 @@ rule estimate_coverage:
         rules.samtools_fastq.output
     output:
         'kmers/{sample}.coverage'
-    #localrules: True
+    resources:
+        walltime = '24h'
     shell:
         '''
-        zgrep -v ">" {input} | awk '{{ l+=length($1) }} END {{ print l/2759153975 }}' > {output}
+        pigz -d -c -p 2 {input} | awk '!/>/ {{ l+=length($1) }} END {{ print l/2759153975 }}' > {output}
         '''
 
 rule KMC_count:
@@ -114,10 +115,10 @@ rule minimap2_align:
     threads: 16
     resources:
         mem_mb = 3000,
-        walltime = '4h'
+        walltime = '24h'
     shell:
         '''
-        minimap2 -c -t {threads} -N1000000 -f1000 -r100,100 <(srfutils.js enlong {input.satellites}) {input.reads} > {output}
+        minimap2 -c -t {threads} -N1000000 -f1000 -r100,100 <(srfutils.js enlong -l 300 {input.satellites}) {input.reads} > {output}
         '''
  
 rule srfutils:
@@ -132,7 +133,7 @@ rule srfutils:
     localrule: True
     shell:
         '''
-        srfutils.js paf2bed -l 1000 {input.paf} > {output.bed}   # filter and extract non-overlapping regions
+        srfutils.js paf2bed -l 1000 {input.paf} > {output.bed} # filter and extract non-overlapping regions
         srfutils.js bed2abun -g {params.size} {output.bed} > {output.abun}
         '''
 
