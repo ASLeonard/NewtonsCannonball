@@ -14,7 +14,7 @@ rule genome_coverage:
         '''
         samtools coverage --reference {input.reference} {input.bam} |\
         grep -P "^(\d|X|Y|MT)" |\
-        awk 'NR>1 {{print "{wildcards.sample}",$1,$6,$7,$9}} > {output}
+        awk '{{print "{wildcards.sample}",$1,$6,$7,$9}}' > {output}
         '''
 
 rule gather_genome:
@@ -45,7 +45,7 @@ rule region_coverage:
         '''
         samtools bedcov -c -g {params.flags} --reference {input.reference} <(echo {params.region} |\
         sed s'/[^0-9]/\\t/g') {input.bam} |\
-        awk '{{print "{wildcards.sample}","{wildcards.region}","{wildcards.filtering}",$4,$5}} > {output}
+        awk '{{print "{wildcards.sample}","{wildcards.region}","{wildcards.filtering}",$4,$5}}' > {output}
         '''
 
 rule gather_region:
