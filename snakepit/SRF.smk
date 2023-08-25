@@ -20,7 +20,7 @@ rule estimate_coverage:
     output:
         'kmers/{sample}.coverage'
     resources:
-        walltime = '24h'
+        walltime = '4h'
     shell:
         '''
         pigz -d -c -p 2 {input} | awk '!/>/ {{ l+=length($1) }} END {{ print l/2759153975 }}' > {output}
@@ -114,8 +114,8 @@ rule minimap2_align:
         'satellites/{sample}.realign.paf'
     threads: 16
     resources:
-        mem_mb = 3000,
-        walltime = '24h'
+        mem_mb = 2000,
+        walltime = '120h'
     shell:
         '''
         minimap2 -c -t {threads} -N1000000 -f1000 -r100,100 <(srfutils.js enlong -l 300 {input.satellites}) {input.reads} > {output}
