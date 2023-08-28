@@ -137,3 +137,16 @@ rule srfutils:
         srfutils.js bed2abun -g {params.size} {output.bed} > {output.abun}
         '''
 
+rule mash_tree:
+    input:
+        expand(rules.SRF.output,sample=config['samples'])
+    output: 
+        'mash.lower_triangle.txt'
+    threads: 4
+    resources:
+        mem_mb = 2500,
+        walltime = '4h'
+    shell:
+        '''
+        mash triangle -s 10000 -k 25 -p {threads} {input} | awk 'NR>1' > {output}
+        '''
