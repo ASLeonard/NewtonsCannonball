@@ -68,7 +68,18 @@ rule SRF:
         srf -p {wildcards.sample} {input} > {output}
         '''
 
-rule TRF:
+rule RepeatMasker:
+    input:
+        rules.SRF.output
+    output:
+        multiext('satellites/{sample}.srf.fa','.out','.tbl','.masked','.cat','.full_tbl')
+    shell:
+        '''
+        RepeatMasker -pa 2 -engine rmblast -lib ../REF_DATA/Repeat_libraries/BosTau9_repeat_library.fasta -s -no_is -xsmall {input}
+        /cluster/work/pausch/alex/software/RepeatMasker/util/buildSummary.pl {output[0]} > {output[4]}
+        '''
+
+rule TRF_monomers:
     input:
         rules.SRF.output
     output:
@@ -88,7 +99,7 @@ rule TRF:
 rule curate_satellite_repeats:
     input:
        SRF = rules.SRF.output,
-       TRF = rules.TRF.output
+       TRF = rules.TRF_monomers.output
     output:
         'satellites/{sample}.txt'
     shell:
@@ -139,14 +150,16 @@ rule srfutils:
 
 rule mash_tree:
     input:
-        expand(rules.SRF.output,sample=config['samples'])
+        lambda wildcards: expand(rules.SRF.output,sample=config['samples']) if wildcards.source == 'SRF' else expand(rules.samtools_fastq.output,sample=config['samples'])
     output: 
-        'mash.lower_triangle.txt'
-    threads: 4
+        'mash.{source}.tri'
+    threads: 6
     resources:
-        mem_mb = 2500,
+        mem_mb = 5000,
         walltime = '4h'
+    params:
+        lambda wildcards: '-r -g 3G -m 2'  if wildcards.source == 'reads' else ''
     shell:
         '''
-        mash triangle -s 10000 -k 25 -p {threads} {input} | awk 'NR>1' > {output}
+        mash triangle -s 10000 -k 25 {params} -p {threads} {input} | awk 'NR>1' > {output}
         '''
